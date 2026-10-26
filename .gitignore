@@ -1,0 +1,12 @@
+.venv/
+venv/
+__pycache__/
+*.py[cod]
+.DS_Store
+.env
+.env.*
+!.env.example
+predictions.db
+.pytest_cache/
+.mypy_cache/
+data/dataset.zip

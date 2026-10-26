@@ -1,0 +1,6 @@
+{
+  "model_name": "Random Forest",
+  "threshold": 0.25,
+  "selection_metric": "validation F1",
+  "random_state": 42
+}
