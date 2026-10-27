@@ -10,3 +10,4 @@ predictions.db
 .pytest_cache/
 .mypy_cache/
 data/dataset.zip
+dvc-storage/

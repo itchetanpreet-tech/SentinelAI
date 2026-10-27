@@ -9,7 +9,12 @@ import streamlit as st
 
 BASE_DIR = Path(__file__).resolve().parent
 DB_PATH = BASE_DIR / "predictions.db"
-API_URL = "http://127.0.0.1:8000/predict"
+import os
+
+API_URL = os.getenv(
+    "SENTINELAI_API_URL",
+    "https" + "://" + "sentinelai-api-v1m1.onrender.com"
+).rstrip("/") + "/predict"
 
 st.set_page_config(
     page_title="SentinelAI | Predictive Maintenance",

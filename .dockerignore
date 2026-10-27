@@ -1,0 +1,12 @@
+.venv
+venv
+__pycache__
+*.py[cod]
+.git
+.github
+.DS_Store
+.pytest_cache
+.mypy_cache
+predictions.db
+dashboard_backup.py
+dvc-storage
