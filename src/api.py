@@ -1,11 +1,15 @@
 
 from pathlib import Path
 import json
+import time
 
 import joblib
 import pandas as pd
-from fastapi import FastAPI
+from fastapi import FastAPI, Request, Response
 from pydantic import BaseModel, Field
+from prometheus_client import (
+    Counter, Histogram, generate_latest, CONTENT_TYPE_LATEST
+)
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 MODEL_PATH = BASE_DIR / "models" / "best_model.joblib"
@@ -23,6 +27,44 @@ app = FastAPI(
     description="Predictive Maintenance and Machine Failure Detection",
     version="1.1.0",
 )
+
+REQUEST_COUNT = Counter(
+    "sentinelai_requests_total",
+    "Total API requests",
+    ["method", "endpoint", "status"],
+)
+
+REQUEST_LATENCY = Histogram(
+    "sentinelai_request_duration_seconds",
+    "API request latency in seconds",
+)
+
+
+@app.middleware("http")
+async def monitor_requests(request: Request, call_next):
+    start = time.perf_counter()
+    status = 500
+
+    try:
+        response = await call_next(request)
+        status = response.status_code
+        return response
+    finally:
+        if request.url.path != "/metrics":
+            REQUEST_COUNT.labels(
+                request.method,
+                request.url.path,
+                str(status),
+            ).inc()
+            REQUEST_LATENCY.observe(time.perf_counter() - start)
+
+
+@app.get("/metrics", include_in_schema=False)
+def metrics():
+    return Response(
+        generate_latest(),
+        media_type=CONTENT_TYPE_LATEST,
+    )
 
 
 class MachineData(BaseModel):
@@ -65,6 +107,9 @@ def predict(data: MachineData):
         "risk_probability": round(probability, 4),
         "risk_percentage": round(probability * 100, 2),
         "threshold": THRESHOLD,
-        "status": "HIGH RISK - INSPECT MACHINE"
-        if failure else "LOWER RISK - CONTINUE MONITORING",
+        "status": (
+            "HIGH RISK - INSPECT MACHINE"
+            if failure
+            else "LOWER RISK - CONTINUE MONITORING"
+        ),
     }
