@@ -1,20 +1,25 @@
 from pathlib import Path
 import json
+import logging
+import sqlite3
 import time
 
 import joblib
 import pandas as pd
 from fastapi import FastAPI, Request, Response
+from fastapi.responses import JSONResponse
 from pydantic import BaseModel, Field
 from prometheus_client import (
     Counter, Histogram, generate_latest, CONTENT_TYPE_LATEST
 )
 
-from src.database import init_db, save_prediction
+from src.database import DB_PATH, init_db, save_prediction
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 MODEL_PATH = BASE_DIR / "models" / "best_model.joblib"
 CONFIG_PATH = BASE_DIR / "models" / "model_config.json"
+
+logger = logging.getLogger("sentinelai.api")
 
 model = joblib.load(MODEL_PATH)
 
@@ -80,6 +85,31 @@ class MachineData(BaseModel):
     tool_wear: float = Field(..., ge=0, le=1000)
 
 
+@app.get("/health")
+def health():
+    """Liveness probe: process is up and model is loaded."""
+    return {
+        "status": "ok",
+        "model_loaded": model is not None,
+        "threshold": THRESHOLD,
+    }
+
+
+@app.get("/health/ready")
+def health_ready():
+    """Readiness probe: DB reachable and predictions table exists."""
+    try:
+        with sqlite3.connect(DB_PATH) as conn:
+            conn.execute("SELECT 1 FROM predictions LIMIT 1").fetchone()
+        return {"status": "ready"}
+    except Exception as exc:
+        logger.warning("Readiness check failed: %s", exc)
+        return JSONResponse(
+            status_code=503,
+            content={"status": "not_ready", "detail": str(exc)},
+        )
+
+
 @app.get("/")
 def home():
     return {
@@ -118,7 +148,10 @@ def predict(data: MachineData):
         ),
     }
 
-    # Save successful prediction to SQLite
-    save_prediction(data.model_dump(), result)
+    # Save successful prediction to SQLite; DB failure must not break inference.
+    try:
+        save_prediction(data.model_dump(), result)
+    except Exception as exc:
+        logger.warning("Failed to persist prediction: %s", exc)
 
     return result
