@@ -7,6 +7,7 @@ __pycache__/
 .env.*
 !.env.example
 predictions.db
+predictions_backup_before_migration.db
 .pytest_cache/
 .mypy_cache/
 data/dataset.zip
