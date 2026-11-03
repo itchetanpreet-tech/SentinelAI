@@ -1,3 +1,4 @@
+import os
 
 from pathlib import Path
 import sqlite3
@@ -6,7 +7,7 @@ import pandas as pd
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 DATA_PATH = BASE_DIR / "data" / "ai4i2020.csv"
-DB_PATH = BASE_DIR / "predictions.db"
+DB_PATH = Path(os.getenv("SENTINELAI_DB_PATH", str(BASE_DIR / "predictions.db")))
 
 SENSOR_COLUMNS = [
     "air_temperature",
