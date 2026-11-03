@@ -58,7 +58,7 @@ def save_prediction(payload, result):
             payload["rotational_speed"],
             payload["torque"],
             payload["tool_wear"],
-            result["risk_percentage"],
+            result["risk_probability"],
             result["threshold"],
             int(result["machine_failure"]),
             result["status"]
@@ -145,7 +145,7 @@ with tab_predict:
         st.subheader("Latest Prediction")
 
         c1, c2, c3 = st.columns(3)
-        c1.metric("Failure Risk", f'{result["risk_percentage"]:.2f}%')
+        c1.metric("Failure Risk", f'{result["risk_probability"]:.2f}%')
         c2.metric("Decision Threshold", f'{result["threshold"]:.0%}')
         c3.metric(
             "Model Decision",

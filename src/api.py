@@ -1,4 +1,3 @@
-
 from pathlib import Path
 import json
 import time
@@ -10,6 +9,8 @@ from pydantic import BaseModel, Field
 from prometheus_client import (
     Counter, Histogram, generate_latest, CONTENT_TYPE_LATEST
 )
+
+from src.database import init_db, save_prediction
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 MODEL_PATH = BASE_DIR / "models" / "best_model.joblib"
@@ -27,6 +28,9 @@ app = FastAPI(
     description="Predictive Maintenance and Machine Failure Detection",
     version="1.1.0",
 )
+
+# Initialize prediction database
+init_db()
 
 REQUEST_COUNT = Counter(
     "sentinelai_requests_total",
@@ -100,7 +104,7 @@ def predict(data: MachineData):
     probability = float(model.predict_proba(features)[0][1])
     failure = probability >= THRESHOLD
 
-    return {
+    result = {
         "project": "SentinelAI",
         "model": model_config["model_name"],
         "machine_failure": bool(failure),
@@ -113,3 +117,8 @@ def predict(data: MachineData):
             else "LOWER RISK - CONTINUE MONITORING"
         ),
     }
+
+    # Save successful prediction to SQLite
+    save_prediction(data.model_dump(), result)
+
+    return result

@@ -3,6 +3,10 @@ services:
     build: .
     ports:
       - "8002:8000"
+    environment:
+      SENTINELAI_DB_PATH: /app/data/predictions.db
+    volumes:
+      - sentinelai_data:/app/data
     restart: unless-stopped
 
   prometheus:
@@ -27,5 +31,6 @@ services:
     restart: unless-stopped
 
 volumes:
+  sentinelai_data:
   prometheus_data:
   grafana_data:
